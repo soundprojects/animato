@@ -1,7 +1,9 @@
 //! 1D [`Spring`] — damped harmonic oscillator.
 
 use crate::config::SpringConfig;
-use animato_core::{AnimationIntrospection, AnimationKind, Inspectable, PlaybackState, Update};
+use animato_core::{
+    AnimationIntrospection, AnimationKind, Inspectable, Playable, PlaybackState, Update,
+};
 
 /// Integration method for the spring ODE.
 #[derive(Clone, Debug, PartialEq)]
@@ -222,6 +224,40 @@ impl Inspectable for Spring {
     }
 }
 
+impl Playable for Spring {
+    fn duration(&self) -> f32 {
+        // Springs have no finite duration — they settle asymptotically.
+        f32::INFINITY
+    }
+
+    fn reset(&mut self) {
+        // Reset to the initial position (current target becomes the new start).
+        let target = self.target;
+        self.snap_to(0.0);
+        self.target = target;
+    }
+
+    fn seek_to(&mut self, _progress: f32) {
+        // Springs don't support meaningful seeking; snap to target at progress=1.0.
+        if _progress >= 1.0 {
+            let target = self.target;
+            self.snap_to(target);
+        }
+    }
+
+    fn is_complete(&self) -> bool {
+        self.is_settled()
+    }
+
+    fn as_any(&self) -> &dyn core::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn core::any::Any {
+        self
+    }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Tests
 // ──────────────────────────────────────────────────────────────────────────────
@@ -387,5 +423,57 @@ mod tests {
             s.update(DT);
         }
         assert!(s.overshoot_count() > 0);
+    }
+
+    // ── Playable impl tests ─────────────────────────────────────────────────
+
+    #[test]
+    fn playable_duration_is_infinite() {
+        let s = Spring::new(SpringConfig::snappy());
+        assert!(Playable::duration(&s).is_infinite());
+    }
+
+    #[test]
+    fn playable_is_complete_when_settled() {
+        let mut s = Spring::new(SpringConfig::snappy());
+        s.set_target(100.0);
+        assert!(!Playable::is_complete(&s));
+        run_to_settle(&mut s);
+        assert!(Playable::is_complete(&s));
+    }
+
+    #[test]
+    fn playable_seek_to_one_snaps_to_target() {
+        let mut s = Spring::new(SpringConfig::snappy());
+        s.set_target(100.0);
+        Playable::seek_to(&mut s, 1.0);
+        assert!(s.is_settled());
+        assert!((s.position() - 100.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn playable_seek_to_zero_does_not_snap() {
+        let mut s = Spring::new(SpringConfig::snappy());
+        s.set_target(100.0);
+        Playable::seek_to(&mut s, 0.0);
+        assert!(!s.is_settled());
+    }
+
+    #[test]
+    fn playable_reset_zeroes_position() {
+        let mut s = Spring::new(SpringConfig::snappy());
+        s.set_target(100.0);
+        run_to_settle(&mut s);
+        assert!((s.position() - 100.0).abs() < 0.01);
+        Playable::reset(&mut s);
+        assert_eq!(s.position(), 0.0);
+    }
+
+    #[test]
+    fn playable_as_any_downcasts() {
+        let s = Spring::new(SpringConfig::default());
+        assert!(Playable::as_any(&s).is::<Spring>());
+        let mut s = s;
+        assert!(Playable::as_any_mut(&mut s).is::<Spring>());
     }
 }

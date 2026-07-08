@@ -1,0 +1,38 @@
+# cargo-audit configuration
+# https://github.com/rustsec/rustsec/tree/main/cargo-audit
+#
+# Pre-existing advisories in transitive dependencies (GTK3 bindings from
+# Dioxus desktop, wgpu chain, bincode, anyhow, rand, etc.). These are upstream
+# issues, not introduced by Animato's own code.
+
+[advisories]
+ignore = [
+    # crossbeam-epoch: Invalid pointer dereference in fmt::Pointer impl
+    "RUSTSEC-2026-0204",
+
+    # quinn-proto: Remote memory exhaustion from unbounded out-of-order stream reassembly
+    "RUSTSEC-2026-0185",
+
+    # atk / atk-sys: gtk-rs GTK3 bindings - no longer maintained
+    "RUSTSEC-2024-0413",
+    "RUSTSEC-2024-0416",
+
+    # bincode: unmaintained
+    "RUSTSEC-2025-0141",
+
+    # anyhow: Unsoundness in Error::downcast_mut()
+    "RUSTSEC-2026-0190",
+
+    # glib: Unsoundness in Iterator impls for VariantStrIter
+    "RUSTSEC-2024-0429",
+
+    # memmap2: Unchecked pointer offset
+    "RUSTSEC-2026-0186",
+
+    # rand 0.7: unsound with custom logger using rand::rng()
+    "RUSTSEC-2026-0097",
+]
+
+# Yanked crates (enumset 1.1.12) are transitive deps we cannot control.
+[yanked]
+enabled = false

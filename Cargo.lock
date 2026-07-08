@@ -58,7 +58,7 @@ checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
 name = "animato"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-bevy",
  "animato-color",
@@ -69,6 +69,7 @@ dependencies = [
  "animato-gpu",
  "animato-js",
  "animato-leptos",
+ "animato-macro",
  "animato-path",
  "animato-physics",
  "animato-spring",
@@ -85,11 +86,12 @@ dependencies = [
  "palette",
  "ratatui",
  "serde",
+ "trybuild",
 ]
 
 [[package]]
 name = "animato-bevy"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-spring",
@@ -103,7 +105,7 @@ dependencies = [
 
 [[package]]
 name = "animato-color"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "palette",
@@ -112,7 +114,7 @@ dependencies = [
 
 [[package]]
 name = "animato-core"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "libm",
  "serde",
@@ -120,7 +122,7 @@ dependencies = [
 
 [[package]]
 name = "animato-devtools"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-driver",
@@ -133,7 +135,7 @@ dependencies = [
 
 [[package]]
 name = "animato-dioxus"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-color",
  "animato-core",
@@ -153,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "animato-driver"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -161,7 +163,7 @@ dependencies = [
 
 [[package]]
 name = "animato-gpu"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -172,7 +174,7 @@ dependencies = [
 
 [[package]]
 name = "animato-js"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-devtools",
@@ -192,7 +194,7 @@ dependencies = [
 
 [[package]]
 name = "animato-leptos"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-color",
  "animato-core",
@@ -211,8 +213,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "animato-macro"
+version = "1.7.0"
+dependencies = [
+ "animato",
+ "animato-core",
+ "animato-path",
+ "animato-spring",
+ "animato-timeline",
+ "animato-tween",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+ "trybuild",
+]
+
+[[package]]
 name = "animato-path"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -222,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "animato-physics"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "libm",
@@ -231,7 +249,7 @@ dependencies = [
 
 [[package]]
 name = "animato-spring"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "serde",
@@ -239,7 +257,7 @@ dependencies = [
 
 [[package]]
 name = "animato-timeline"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-tween",
@@ -249,7 +267,7 @@ dependencies = [
 
 [[package]]
 name = "animato-tween"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "serde",
@@ -257,7 +275,7 @@ dependencies = [
 
 [[package]]
 name = "animato-wasm"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-core",
  "animato-driver",
@@ -269,7 +287,7 @@ dependencies = [
 
 [[package]]
 name = "animato-yew"
-version = "1.6.0"
+version = "1.7.0"
 dependencies = [
  "animato-color",
  "animato-core",
@@ -3092,6 +3110,12 @@ dependencies = [
  "libc",
  "system-deps",
 ]
+
+[[package]]
+name = "glob"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
 name = "global-hotkey"
@@ -7297,6 +7321,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
+name = "target-triple"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "591ef38edfb78ca4771ee32cf494cb8771944bee237a9b91fc9c1424ac4b777b"
+
+[[package]]
 name = "tempfile"
 version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7620,10 +7650,12 @@ version = "1.1.2+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81f3d15e84cbcd896376e6730314d59fb5a87f31e4b038454184435cd57defee"
 dependencies = [
+ "indexmap",
  "serde_core",
  "serde_spanned 1.1.1",
  "toml_datetime 1.1.1+spec-1.1.0",
  "toml_parser",
+ "toml_writer",
  "winnow 1.0.2",
 ]
 
@@ -7710,6 +7742,12 @@ checksum = "a2abe9b86193656635d2411dc43050282ca48aa31c2451210f4202550afb7526"
 dependencies = [
  "winnow 1.0.2",
 ]
+
+[[package]]
+name = "toml_writer"
+version = "1.1.1+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "756daf9b1013ebe47a8776667b466417e2d4c5679d441c26230efd9ef78692db"
 
 [[package]]
 name = "tower"
@@ -7813,6 +7851,21 @@ name = "try-lock"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
+
+[[package]]
+name = "trybuild"
+version = "1.0.117"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0710d4dfbeae4f9c390baa784c49858a7468fa433f3fe5d0ec5ebef651cf59f9"
+dependencies = [
+ "glob",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "target-triple",
+ "termcolor",
+ "toml 1.1.2+spec-1.1.0",
+]
 
 [[package]]
 name = "tungstenite"
