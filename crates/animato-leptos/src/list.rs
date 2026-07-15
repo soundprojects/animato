@@ -96,7 +96,7 @@ where
             data-move-duration=duration
             data-move-easing=easing_label
             data-stagger-delay=stagger
-            style="display:flex; flex-direction:column; gap:10px;"
+            style="display:flex; flex-direction:column;"
         >
             <For
                 each=move || each_for_render.get()
