@@ -36,6 +36,9 @@ pub fn AnimatedFor<T, K, KF, CF, IV>(
     /// Move animation easing.
     #[prop(optional)]
     move_easing: Option<Easing>,
+    /// Move delay duration in seconds.
+    #[prop(optional)]
+    move_delay: Option<f32>,
     /// Stagger delay between rows.
     #[prop(optional)]
     stagger_delay: Option<f32>,
@@ -52,6 +55,7 @@ where
     let duration = move_duration.unwrap_or(0.25).max(0.0);
     let easing = move_easing.unwrap_or(Easing::EaseOutCubic);
     let easing_label = format!("{easing:?}");
+    let delay = move_delay.unwrap_or(0.0);
     let stagger = stagger_delay.unwrap_or(0.0).max(0.0);
     let container = NodeRef::<leptos::html::Div>::new();
     let key_for_key = key.clone();
@@ -83,6 +87,7 @@ where
                 Rc::clone(&previous_rects),
                 duration,
                 css_timing_function(&easing_for_effect),
+                delay,
                 stagger,
                 animation.clone(),
             );
@@ -138,6 +143,7 @@ fn animate_flip(
     previous_rects: Rc<RefCell<HashMap<String, ItemRect>>>,
     duration: f32,
     easing: &'static str,
+    delay: f32,
     stagger: f32,
     enter: PresenceAnimation,
 ) {
@@ -173,7 +179,7 @@ fn animate_flip(
         let Some(html) = element.dyn_ref::<web_sys::HtmlElement>() else {
             continue;
         };
-        let delay = format!("{:.3}s", stagger * index as f32);
+        let delay = format!("{:.3}s", delay + stagger * index as f32);
         let style = html.style();
         let _ = style.set_property("transition", "none");
         let _ = style.set_property("transition-delay", &delay);
