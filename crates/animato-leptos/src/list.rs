@@ -169,7 +169,7 @@ fn animate_flip(
     let previous = previous_rects.borrow().clone();
     let mut next = HashMap::new();
 
-    let item_delay = delay + stagger * index as f32;
+    let item_delay = delay as f32;
 
     let transition = format!(
         "transform {:.3}s {} {:.3}s, opacity {:.3}s {}, filter {:.3}s {}",
