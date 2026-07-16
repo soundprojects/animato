@@ -83,16 +83,21 @@ where
                 .iter()
                 .map(|item| stable_key(&key_for_effect(item)))
                 .collect::<Vec<_>>();
-            animate_flip(
-                container,
-                Rc::clone(&previous_rects),
-                duration,
-                css_timing_function(&easing_for_effect),
-                delay,
-                stagger,
-                animation.clone(),
-                exit_animation.clone(),
-            );
+            leptos::prelude::request_animation_frame_with_handle(move || {
+                // one more frame is often enough to ensure <For/> committed
+                leptos::prelude::request_animation_frame_with_handle(move || {
+                    animate_flip(
+                        container,
+                        Rc::clone(&previous_rects),
+                        duration,
+                        css_timing_function(&easing_for_effect),
+                        delay,
+                        stagger,
+                        animation.clone(),
+                        exit_animation.clone(),
+                    );
+                });
+            });
         });
     }
 
