@@ -169,9 +169,11 @@ fn animate_flip(
     let previous = previous_rects.borrow().clone();
     let mut next = HashMap::new();
 
+    let item_delay = delay + stagger * index as f32;
+
     let transition = format!(
-        "transform {:.3}s {}, opacity {:.3}s {}, filter {:.3}s {}",
-        duration, easing, duration, easing, duration, easing
+        "transform {:.3}s {} {:.3}s, opacity {:.3}s {}, filter {:.3}s {}",
+        duration, easing, item_delay, duration, easing, duration, easing
     );
 
     // ENTER + MOVE
@@ -199,10 +201,7 @@ fn animate_flip(
 
         let style = html.style();
 
-        let delay_str = format!("{:.3}s", delay + stagger * index as f32);
-
         let _ = style.set_property("transition", "none");
-        let _ = style.set_property("transition-delay", &delay_str);
 
         if let Some(before) = previous.get(&key) {
             let dx = before.left - rect.left();
@@ -300,8 +299,6 @@ fn animate_flip(
                     let style = html.style();
 
                     let _ = style.set_property("transition", &exit_transition);
-
-                    let _ = style.set_property("transition-delay", &delay_str);
 
                     let _ = style.set_property("transform", &target_transform);
 
