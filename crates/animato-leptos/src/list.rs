@@ -51,7 +51,7 @@ where
     IV: IntoView + 'static,
 {
     let enter = enter.unwrap_or_else(PresenceAnimation::fade);
-    let _exit = exit.unwrap_or_else(|| enter.reversed());
+    let exit = exit.unwrap_or_else(|| enter.reversed());
     let duration = move_duration.unwrap_or(0.25).max(0.0);
     let easing = move_easing.unwrap_or(Easing::EaseOutCubic);
     let easing_label = format!("{easing:?}");
@@ -67,6 +67,7 @@ where
     {
         let previous_rects = Rc::new(RefCell::new(HashMap::new()));
         let animation = enter.clone();
+        let exit_animation = exit.clone();
         let each_for_effect = each;
         let key_for_effect = key.clone();
         let easing_for_effect = easing.clone();
@@ -90,6 +91,7 @@ where
                 delay,
                 stagger,
                 animation.clone(),
+                exit_animation.clone(),
             );
         });
     }
@@ -132,7 +134,7 @@ fn stable_key<K: Hash>(key: &K) -> String {
 }
 
 #[cfg(all(target_arch = "wasm32", any(feature = "csr", feature = "hydrate")))]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 struct ItemRect {
     left: f64,
     top: f64,
@@ -353,111 +355,6 @@ fn animate_flip(
             }
         });
     });
-}
-
-#[cfg(all(target_arch = "wasm32", any(feature = "csr", feature = "hydrate")))]
-fn animate_exit(
-    exiting: Vec<ItemRect>,
-    duration: f32,
-    easing: &'static str,
-    delay: f32,
-    stagger: f32,
-    exit: PresenceAnimation,
-) {
-    let Some(document) = web_sys::window().and_then(|w| w.document()) else {
-        return;
-    };
-
-    for (index, item) in exiting.into_iter().enumerate() {
-        let Ok(clone) = item.element.clone_node_with_deep(true) else {
-            continue;
-        };
-
-        let Some(clone) = clone.dyn_ref::<web_sys::Element>() else {
-            continue;
-        };
-
-        let Some(html) = clone.dyn_ref::<web_sys::HtmlElement>() else {
-            continue;
-        };
-
-        let style = html.style();
-
-        let _ = style.set_property("position", "fixed");
-        let _ = style.set_property("left", &format!("{}px", item.left));
-        let _ = style.set_property("top", &format!("{}px", item.top));
-        let _ = style.set_property("width", &format!("{}px", item.width));
-        let _ = style.set_property("height", &format!("{}px", item.height));
-        let _ = style.set_property("margin", "0");
-        let _ = style.set_property("pointer-events", "none");
-        let _ = style.set_property("z-index", "9999");
-
-        let from_transform = exit.from.transform_string();
-        let from_opacity = exit.from.opacity.unwrap_or(1.0);
-        let from_filter = exit
-            .from
-            .blur
-            .map(|b| format!("blur({b}px)"))
-            .unwrap_or_else(|| "none".to_string());
-
-        let _ = style.set_property("transform", &from_transform);
-        let _ = style.set_property("opacity", &from_opacity.to_string());
-        let _ = style.set_property("filter", &from_filter);
-
-        let Some(body) = document.body() else {
-            continue;
-        };
-
-        let _ = body.append_child(clone);
-
-        let transition_delay = format!("{:.3}s", delay + stagger * index as f32);
-
-        let transition = format!(
-            "transform {:.3}s {}, opacity {:.3}s {}, filter {:.3}s {}",
-            duration, easing, duration, easing, duration, easing
-        );
-
-        let clone_for_anim = clone.clone();
-        let clone_for_remove = clone.clone();
-
-        let target_transform = exit.to.transform_string();
-        let target_opacity = exit.to.opacity.unwrap_or(0.0).to_string();
-        let target_filter = exit
-            .to
-            .blur
-            .map(|b| format!("blur({b}px)"))
-            .unwrap_or_else(|| "none".to_string());
-
-        let _ = leptos::prelude::request_animation_frame_with_handle(move || {
-            let Some(html) = clone_for_anim.dyn_ref::<web_sys::HtmlElement>() else {
-                return;
-            };
-
-            let style = html.style();
-
-            let _ = style.set_property("transition", &transition);
-            let _ = style.set_property("transition-delay", &transition_delay);
-
-            let _ = style.set_property("transform", &target_transform);
-            let _ = style.set_property("opacity", &target_opacity);
-            let _ = style.set_property("filter", &target_filter);
-        });
-
-        let total_ms = ((delay + stagger * index as f32 + duration) * 1000.0) as i32;
-
-        let closure = wasm_bindgen::closure::Closure::once(move || {
-            clone_for_remove.remove();
-        });
-
-        let _ = web_sys::window()
-            .unwrap()
-            .set_timeout_with_callback_and_timeout_and_arguments_0(
-                closure.as_ref().unchecked_ref(),
-                total_ms,
-            );
-
-        closure.forget();
-    }
 }
 
 #[cfg(all(target_arch = "wasm32", any(feature = "csr", feature = "hydrate")))]
