@@ -113,6 +113,7 @@ where
                         <div
                             data-animato-list-item="true"
                             data-animato-key=key_value
+                            class="z-0 hover:z-50"
                             style="will-change:transform,opacity;"
                         >
                             {child}
