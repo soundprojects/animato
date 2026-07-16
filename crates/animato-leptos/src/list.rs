@@ -169,7 +169,9 @@ fn animate_flip(
     let previous = previous_rects.borrow().clone();
     let mut next = HashMap::new();
 
-    let item_delay = delay as f32;
+    let is_first_render = previous.is_empty();
+
+    let item_delay = if is_first_render { 0.0 } else { delay };
 
     let transition = format!(
         "transform {:.3}s {} {:.3}s, opacity {:.3}s {}, filter {:.3}s {}",
@@ -292,19 +294,21 @@ fn animate_flip(
                 let clone_for_anim = clone.clone();
 
                 let _ = leptos::prelude::request_animation_frame_with_handle(move || {
-                    let Some(html) = clone_for_anim.dyn_ref::<web_sys::HtmlElement>() else {
-                        return;
-                    };
+                    let _ = leptos::prelude::request_animation_frame_with_handle(move || {
+                        let Some(html) = clone_for_anim.dyn_ref::<web_sys::HtmlElement>() else {
+                            return;
+                        };
 
-                    let style = html.style();
+                        let style = html.style();
 
-                    let _ = style.set_property("transition", &exit_transition);
+                        let _ = style.set_property("transition", &exit_transition);
 
-                    let _ = style.set_property("transform", &target_transform);
+                        let _ = style.set_property("transform", &target_transform);
 
-                    let _ = style.set_property("opacity", &target_opacity);
+                        let _ = style.set_property("opacity", &target_opacity);
 
-                    let _ = style.set_property("filter", &target_filter);
+                        let _ = style.set_property("filter", &target_filter);
+                    });
                 });
 
                 let total_ms = ((duration + stagger * index as f32) * 1000.0) as i32;
