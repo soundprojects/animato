@@ -88,7 +88,7 @@ where
                 leptos::prelude::request_animation_frame_with_handle(move || {
                     animate_flip(
                         container,
-                        Rc::clone(&previous_rects),
+                        Rc::clone(&previous_rects.clone()),
                         duration,
                         css_timing_function(&easing_for_effect),
                         delay,
