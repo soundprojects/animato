@@ -378,6 +378,9 @@ fn collect_rects(elements: &[web_sys::Element]) -> HashMap<String, ItemRect> {
                 ItemRect {
                     left: rect.left(),
                     top: rect.top(),
+                    width: rect.width(),
+                    height: rect.height(),
+                    element: element.clone(),
                 },
             ))
         })
