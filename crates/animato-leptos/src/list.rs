@@ -79,6 +79,7 @@ where
 
         Effect::new(move || {
             let pr = previous_rects.clone();
+            let eff = easing_for_effect.clone();
             let list = each_for_effect.get();
             let _keys = list
                 .iter()
@@ -91,7 +92,7 @@ where
                         container,
                         Rc::clone(&pr.clone()),
                         duration,
-                        css_timing_function(&easing_for_effect),
+                        css_timing_function(&eff.clone()),
                         delay,
                         stagger,
                         animation.clone(),
