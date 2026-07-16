@@ -81,6 +81,8 @@ where
             let pr = previous_rects.clone();
             let eff = easing_for_effect.clone();
             let list = each_for_effect.get();
+            let ea = animation.clone();
+            let xa = exit_animation.clone();
             let _keys = list
                 .iter()
                 .map(|item| stable_key(&key_for_effect(item)))
@@ -95,8 +97,8 @@ where
                         css_timing_function(&eff.clone()),
                         delay,
                         stagger,
-                        animation.clone(),
-                        exit_animation.clone(),
+                        ea.clone(),
+                        xa.clone(),
                     );
                 });
             });
