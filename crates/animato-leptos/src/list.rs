@@ -135,6 +135,9 @@ fn stable_key<K: Hash>(key: &K) -> String {
 struct ItemRect {
     left: f64,
     top: f64,
+    width: f64,
+    height: f64,
+    element: web_sys::Element,
 }
 
 #[cfg(all(target_arch = "wasm32", any(feature = "csr", feature = "hydrate")))]
@@ -146,7 +149,10 @@ fn animate_flip(
     delay: f32,
     stagger: f32,
     enter: PresenceAnimation,
+    exit: PresenceAnimation,
 ) {
+    use wasm_bindgen::JsCast;
+
     if crate::ssr::is_hydrating() {
         return;
     }
@@ -156,51 +162,165 @@ fn animate_flip(
     };
 
     let elements = list_item_elements(&container);
+
     let previous = previous_rects.borrow().clone();
     let mut next = HashMap::new();
+
     let transition = format!(
         "transform {:.3}s {}, opacity {:.3}s {}, filter {:.3}s {}",
         duration, easing, duration, easing, duration, easing
     );
 
+    // ENTER + MOVE
     for (index, element) in elements.iter().enumerate() {
         let Some(key) = element.get_attribute("data-animato-key") else {
             continue;
         };
+
         let rect = element.get_bounding_client_rect();
+
         next.insert(
             key.clone(),
             ItemRect {
                 left: rect.left(),
                 top: rect.top(),
+                width: rect.width(),
+                height: rect.height(),
+                element: element.clone(),
             },
         );
 
         let Some(html) = element.dyn_ref::<web_sys::HtmlElement>() else {
             continue;
         };
-        let delay = format!("{:.3}s", delay + stagger * index as f32);
+
         let style = html.style();
+
+        let delay_str = format!("{:.3}s", delay + stagger * index as f32);
+
         let _ = style.set_property("transition", "none");
-        let _ = style.set_property("transition-delay", &delay);
+        let _ = style.set_property("transition-delay", &delay_str);
 
         if let Some(before) = previous.get(&key) {
             let dx = before.left - rect.left();
             let dy = before.top - rect.top();
+
             if dx.abs() > 0.5 || dy.abs() > 0.5 {
                 let _ = style.set_property("transform", &format!("translate({dx:.1}px,{dy:.1}px)"));
                 let _ = style.set_property("opacity", "1");
             }
         } else {
             let from_transform = enter.from.transform_string();
+
             if !from_transform.is_empty() {
                 let _ = style.set_property("transform", &from_transform);
             }
+
             if let Some(opacity) = enter.from.opacity {
                 let _ = style.set_property("opacity", &opacity.to_string());
             }
+
             if let Some(blur) = enter.from.blur {
                 let _ = style.set_property("filter", &format!("blur({blur}px)"));
+            }
+        }
+    }
+
+    // EXIT
+    if let Some(document) = web_sys::window().and_then(|w| w.document()) {
+        if let Some(body) = document.body() {
+            let exiting: Vec<_> = previous
+                .iter()
+                .filter(|(key, _)| !next.contains_key(*key))
+                .map(|(_, rect)| rect.clone())
+                .collect();
+
+            for (index, item) in exiting.into_iter().enumerate() {
+                let Ok(node) = item.element.clone_node_with_deep(true) else {
+                    continue;
+                };
+
+                let Ok(clone) = node.dyn_into::<web_sys::Element>() else {
+                    continue;
+                };
+
+                let Some(html) = clone.dyn_ref::<web_sys::HtmlElement>() else {
+                    continue;
+                };
+
+                let style = html.style();
+
+                let _ = style.set_property("position", "fixed");
+                let _ = style.set_property("left", &format!("{}px", item.left));
+                let _ = style.set_property("top", &format!("{}px", item.top));
+                let _ = style.set_property("width", &format!("{}px", item.width));
+                let _ = style.set_property("height", &format!("{}px", item.height));
+
+                let _ = style.set_property("margin", "0");
+                let _ = style.set_property("pointer-events", "none");
+                let _ = style.set_property("z-index", "9999");
+
+                let from_transform = exit.from.transform_string();
+
+                let _ = style.set_property("transform", &from_transform);
+
+                if let Some(opacity) = exit.from.opacity {
+                    let _ = style.set_property("opacity", &opacity.to_string());
+                }
+
+                if let Some(blur) = exit.from.blur {
+                    let _ = style.set_property("filter", &format!("blur({blur}px)"));
+                }
+
+                let _ = body.append_child(&clone);
+
+                let exit_transition = transition.clone();
+
+                let target_transform = exit.to.transform_string();
+                let target_opacity = exit.to.opacity.unwrap_or(0.0).to_string();
+
+                let target_filter = exit
+                    .to
+                    .blur
+                    .map(|blur| format!("blur({blur}px)"))
+                    .unwrap_or_else(|| "none".into());
+
+                let delay_str = format!("{:.3}s", stagger * index as f32);
+
+                let clone_for_anim = clone.clone();
+
+                let _ = leptos::prelude::request_animation_frame_with_handle(move || {
+                    let Some(html) = clone_for_anim.dyn_ref::<web_sys::HtmlElement>() else {
+                        return;
+                    };
+
+                    let style = html.style();
+
+                    let _ = style.set_property("transition", &exit_transition);
+
+                    let _ = style.set_property("transition-delay", &delay_str);
+
+                    let _ = style.set_property("transform", &target_transform);
+
+                    let _ = style.set_property("opacity", &target_opacity);
+
+                    let _ = style.set_property("filter", &target_filter);
+                });
+
+                let total_ms = ((duration + stagger * index as f32) * 1000.0) as i32;
+
+                let clone_for_remove = clone.clone();
+
+                let closure = wasm_bindgen::closure::Closure::once_into_js(move || {
+                    clone_for_remove.remove();
+                });
+
+                let _ = web_sys::window()
+                    .unwrap()
+                    .set_timeout_with_callback_and_timeout_and_arguments_0(
+                        closure.unchecked_ref(),
+                        total_ms,
+                    );
             }
         }
     }
@@ -209,6 +329,7 @@ fn animate_flip(
 
     let target_transform = enter.to.transform_string();
     let target_opacity = enter.to.opacity.unwrap_or(1.0).to_string();
+
     let target_filter = enter
         .to
         .blur
@@ -221,7 +342,9 @@ fn animate_flip(
                 let Some(html) = element.dyn_ref::<web_sys::HtmlElement>() else {
                     continue;
                 };
+
                 let style = html.style();
+
                 let _ = style.set_property("transition", &transition);
                 let _ = style.set_property("transform", &target_transform);
                 let _ = style.set_property("opacity", &target_opacity);
@@ -229,6 +352,111 @@ fn animate_flip(
             }
         });
     });
+}
+
+#[cfg(all(target_arch = "wasm32", any(feature = "csr", feature = "hydrate")))]
+fn animate_exit(
+    exiting: Vec<ItemRect>,
+    duration: f32,
+    easing: &'static str,
+    delay: f32,
+    stagger: f32,
+    exit: PresenceAnimation,
+) {
+    let Some(document) = web_sys::window().and_then(|w| w.document()) else {
+        return;
+    };
+
+    for (index, item) in exiting.into_iter().enumerate() {
+        let Ok(clone) = item.element.clone_node_with_deep(true) else {
+            continue;
+        };
+
+        let Some(clone) = clone.dyn_ref::<web_sys::Element>() else {
+            continue;
+        };
+
+        let Some(html) = clone.dyn_ref::<web_sys::HtmlElement>() else {
+            continue;
+        };
+
+        let style = html.style();
+
+        let _ = style.set_property("position", "fixed");
+        let _ = style.set_property("left", &format!("{}px", item.left));
+        let _ = style.set_property("top", &format!("{}px", item.top));
+        let _ = style.set_property("width", &format!("{}px", item.width));
+        let _ = style.set_property("height", &format!("{}px", item.height));
+        let _ = style.set_property("margin", "0");
+        let _ = style.set_property("pointer-events", "none");
+        let _ = style.set_property("z-index", "9999");
+
+        let from_transform = exit.from.transform_string();
+        let from_opacity = exit.from.opacity.unwrap_or(1.0);
+        let from_filter = exit
+            .from
+            .blur
+            .map(|b| format!("blur({b}px)"))
+            .unwrap_or_else(|| "none".to_string());
+
+        let _ = style.set_property("transform", &from_transform);
+        let _ = style.set_property("opacity", &from_opacity.to_string());
+        let _ = style.set_property("filter", &from_filter);
+
+        let Some(body) = document.body() else {
+            continue;
+        };
+
+        let _ = body.append_child(clone);
+
+        let transition_delay = format!("{:.3}s", delay + stagger * index as f32);
+
+        let transition = format!(
+            "transform {:.3}s {}, opacity {:.3}s {}, filter {:.3}s {}",
+            duration, easing, duration, easing, duration, easing
+        );
+
+        let clone_for_anim = clone.clone();
+        let clone_for_remove = clone.clone();
+
+        let target_transform = exit.to.transform_string();
+        let target_opacity = exit.to.opacity.unwrap_or(0.0).to_string();
+        let target_filter = exit
+            .to
+            .blur
+            .map(|b| format!("blur({b}px)"))
+            .unwrap_or_else(|| "none".to_string());
+
+        let _ = leptos::prelude::request_animation_frame_with_handle(move || {
+            let Some(html) = clone_for_anim.dyn_ref::<web_sys::HtmlElement>() else {
+                return;
+            };
+
+            let style = html.style();
+
+            let _ = style.set_property("transition", &transition);
+            let _ = style.set_property("transition-delay", &transition_delay);
+
+            let _ = style.set_property("transform", &target_transform);
+            let _ = style.set_property("opacity", &target_opacity);
+            let _ = style.set_property("filter", &target_filter);
+        });
+
+        let total_ms = ((delay + stagger * index as f32 + duration) * 1000.0) as i32;
+
+        let closure = wasm_bindgen::closure::Closure::once(move || {
+            clone_for_remove.remove();
+        });
+
+        let _ = web_sys::window()
+            .unwrap()
+            .set_timeout_with_callback_and_timeout_and_arguments_0(
+                closure.as_ref().unchecked_ref(),
+                total_ms,
+            );
+
+        closure.forget();
+    }
 }
 
 #[cfg(all(target_arch = "wasm32", any(feature = "csr", feature = "hydrate")))]
